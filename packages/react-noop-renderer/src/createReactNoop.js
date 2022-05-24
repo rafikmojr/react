@@ -434,6 +434,10 @@ function createReactNoop(reconciler: Function, useMutation: boolean) {
               })
         : setTimeout,
 
+    supportsAnimationFrame: false,
+    scheduleAnimationFrame: undefined,
+    cancelAnimationFrame: undefined,
+
     prepareForCommit(): null | Object {
       return null;
     },

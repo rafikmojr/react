@@ -384,7 +384,12 @@ export const cancelTimeout: any =
   typeof clearTimeout === 'function' ? clearTimeout : (undefined: any);
 export const noTimeout = -1;
 const localPromise = typeof Promise === 'function' ? Promise : undefined;
-
+const localRequestAnimationFrame =
+  typeof requestAnimationFrame === 'function'
+    ? requestAnimationFrame
+    : undefined;
+const localCancelAnimationFrame =
+  typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : undefined;
 // -------------------
 //     Microtasks
 // -------------------
@@ -399,6 +404,14 @@ export const scheduleMicrotask: any =
           .then(callback)
           .catch(handleErrorInNextTick)
     : scheduleTimeout; // TODO: Determine the best fallback here.
+
+// -------------------
+//     requestAnimationFrame
+// -------------------
+export const supportsAnimationFrame =
+  typeof localRequestAnimationFrame !== 'undefined';
+export const scheduleAnimationFrame: any = localRequestAnimationFrame;
+export const cancelAnimationFrame: any = localCancelAnimationFrame;
 
 function handleErrorInNextTick(error) {
   setTimeout(() => {

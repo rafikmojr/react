@@ -38,6 +38,7 @@ import {
   enableUpdaterTracking,
   enableCache,
   enableTransitionTracing,
+  enableFameEndScheduling,
 } from 'shared/ReactFeatureFlags';
 import ReactSharedInternals from 'shared/ReactSharedInternals';
 import is from 'shared/objectIs';
@@ -79,6 +80,9 @@ import {
   afterActiveInstanceBlur,
   getCurrentEventPriority,
   supportsMicrotasks,
+  supportsAnimationFrame,
+  scheduleAnimationFrame,
+  cancelAnimationFrame,
   errorHydratingContainer,
   scheduleMicrotask,
 } from './ReactFiberHostConfig';
@@ -147,6 +151,7 @@ import {
   movePendingFibersToMemoized,
   addTransitionToLanesMap,
   getTransitionsForLanes,
+  DefaultLane,
 } from './ReactFiberLane.new';
 import {
   DiscreteEventPriority,
@@ -683,6 +688,7 @@ export function isUnsafeClassRenderPhaseUpdate(fiber: Fiber) {
 // exiting a task.
 function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   const existingCallbackNode = root.callbackNode;
+  const existingFrameAlignedNode = root.frameAlignedNode;
 
   // Check if any lanes are being starved by other work. If so, mark them as
   // expired so we know to work on those next.
@@ -737,13 +743,22 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     return;
   }
 
-  if (existingCallbackNode != null) {
+  if (existingCallbackNode !== null) {
     // Cancel the existing callback. We'll schedule a new one below.
     cancelCallback(existingCallbackNode);
   }
 
+  if (
+    enableFameEndScheduling &&
+    cancelAnimationFrame != null &&
+    existingFrameAlignedNode != null
+  ) {
+    cancelAnimationFrame(existingFrameAlignedNode);
+  }
+
   // Schedule a new callback.
   let newCallbackNode;
+  let newFrameAlignedNode;
   if (newCallbackPriority === SyncLane) {
     // Special case: Sync React callbacks are scheduled on a special
     // internal queue
@@ -783,6 +798,31 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
       scheduleCallback(ImmediateSchedulerPriority, flushSyncCallbacks);
     }
     newCallbackNode = null;
+  } else if (
+    enableFameEndScheduling &&
+    supportsAnimationFrame &&
+    newCallbackPriority === DefaultLane
+  ) {
+    if (existingCallbackPriority === -1) {
+      // Do nothing, batch Default updates in the existing rAF.
+    } else if (
+      typeof window !== 'undefined' &&
+      typeof window.event === 'undefined'
+    ) {
+      // Schedule both tasks, we'll race them and use the first to fire.
+      newFrameAlignedNode = scheduleAnimationFrame(
+        performConcurrentWorkOnRoot.bind(null, root),
+      );
+      newCallbackNode = scheduleCallback(
+        NormalSchedulerPriority,
+        performConcurrentWorkOnRoot.bind(null, root),
+      );
+    } else {
+      newCallbackNode = scheduleCallback(
+        NormalSchedulerPriority,
+        performConcurrentWorkOnRoot.bind(null, root),
+      );
+    }
   } else {
     let schedulerPriorityLevel;
     switch (lanesToEventPriority(nextLanes)) {
@@ -810,6 +850,9 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
   root.callbackPriority = newCallbackPriority;
   root.callbackNode = newCallbackNode;
+  if (enableFameEndScheduling) {
+    root.frameAlignedNode = newFrameAlignedNode;
+  }
 }
 
 // This is the entry point for every concurrent task, i.e. anything that
@@ -865,7 +908,9 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
   const shouldTimeSlice =
     !includesBlockingLane(root, lanes) &&
     !includesExpiredLane(root, lanes) &&
-    (disableSchedulerTimeoutInWorkLoop || !didTimeout);
+    (disableSchedulerTimeoutInWorkLoop || !didTimeout) &&
+    enableFameEndScheduling &&
+    root.frameAlignedNode !== null;
   let exitStatus = shouldTimeSlice
     ? renderRootConcurrent(root, lanes)
     : renderRootSync(root, lanes);

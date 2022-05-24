@@ -35,4 +35,26 @@ if (typeof window !== 'undefined') {
   global.cancelIdleCallback = function(callbackID) {
     clearTimeout(callbackID);
   };
+
+  global.requestAnimationFrameQueue = null;
+  global.requestAnimationFrame = function(callback) {
+    if (global.requestAnimationFrameQueue == null) {
+      global.requestAnimationFrameQueue = [];
+    }
+    global.requestAnimationFrameQueue.push(callback);
+    return global.requestAnimationFrameQueue.length - 1;
+  };
+
+  global.cancelAnimationFrame = function(id) {
+    if (global.requestAnimationFrameQueue != null) {
+      global.requestAnimationFrameQueue.splice(id, 1);
+    }
+  };
+
+  global.flushRequestAnimationFrameQueue = function() {
+    if (global.requestAnimationFrameQueue != null) {
+      global.requestAnimationFrameQueue.forEach(callback => callback());
+      global.requestAnimationFrameQueue = null;
+    }
+  };
 }
