@@ -908,9 +908,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
   const shouldTimeSlice =
     !includesBlockingLane(root, lanes) &&
     !includesExpiredLane(root, lanes) &&
-    (disableSchedulerTimeoutInWorkLoop || !didTimeout) &&
-    enableFameEndScheduling &&
-    root.frameAlignedNode !== null;
+    (disableSchedulerTimeoutInWorkLoop || !didTimeout);
   let exitStatus = shouldTimeSlice
     ? renderRootConcurrent(root, lanes)
     : renderRootSync(root, lanes);
