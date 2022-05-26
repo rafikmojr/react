@@ -389,7 +389,10 @@ const localRequestAnimationFrame =
     ? requestAnimationFrame
     : undefined;
 const localCancelAnimationFrame =
-  typeof cancelAnimationFrame === 'function' ? cancelAnimationFrame : undefined;
+  typeof window !== 'undefined' &&
+  typeof window.cancelAnimationFrame === 'function'
+    ? window.cancelAnimationFrame
+    : undefined;
 // -------------------
 //     Microtasks
 // -------------------
