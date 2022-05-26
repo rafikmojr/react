@@ -692,7 +692,6 @@ describe('ReactDOMFiberAsync', () => {
     });
 
     // @gate enableFameEndScheduling
-    // @gate allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced', () => {
       let setState = null;
       let counterRef = null;
@@ -721,7 +720,6 @@ describe('ReactDOMFiberAsync', () => {
     });
 
     // @gate enableFameEndScheduling
-    // @gate allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default first', () => {
       let setState = null;
       let counterRef = null;
@@ -753,7 +751,6 @@ describe('ReactDOMFiberAsync', () => {
     });
 
     // @gate enableFameEndScheduling
-    // @gate allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default after', () => {
       let setState = null;
       let counterRef = null;
