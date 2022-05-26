@@ -546,7 +546,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(formSubmitted).toBe(true);
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('Unknown update followed by default update is batched, scheduled in a rAF', () => {
       let setState = null;
       let counterRef = null;
@@ -582,7 +582,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('Unknown update followed by default update is batched, scheduled in a task', () => {
       let setState = null;
       let counterRef = null;
@@ -618,7 +618,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('Default update followed by an unknown update is batched, scheduled in a rAF', () => {
       let setState = null;
       let counterRef = null;
@@ -655,7 +655,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('Default update followed by unknown update is batched, scheduled in a task', () => {
       let setState = null;
       let counterRef = null;
@@ -691,7 +691,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced', () => {
       let setState = null;
       let counterRef = null;
@@ -719,7 +719,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 1');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default first', () => {
       let setState = null;
       let counterRef = null;
@@ -750,7 +750,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFameEndScheduling
+    // @gate enableFrameEndScheduling
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default after', () => {
       let setState = null;
       let counterRef = null;

@@ -22,7 +22,7 @@ import {
   enableUpdaterTracking,
   allowConcurrentByDefault,
   enableTransitionTracing,
-  enableFameEndScheduling,
+  enableFrameEndScheduling,
 } from 'shared/ReactFeatureFlags';
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.old';
 import {ConcurrentUpdatesByDefaultMode, NoMode} from './ReactTypeOfMode';
@@ -469,7 +469,7 @@ export function includesBlockingLane(root: FiberRoot, lanes: Lanes) {
     allowConcurrentByDefault &&
     (root.current.mode & ConcurrentUpdatesByDefaultMode) !== NoMode
   ) {
-    if (enableFameEndScheduling && root.frameAlignedNode != null) {
+    if (enableFrameEndScheduling && root.frameAlignedNode != null) {
       // Unknown updates should flush synchronously, even in concurrent by default.
       return true;
     }

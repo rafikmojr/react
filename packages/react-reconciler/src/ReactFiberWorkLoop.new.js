@@ -38,7 +38,7 @@ import {
   enableUpdaterTracking,
   enableCache,
   enableTransitionTracing,
-  enableFameEndScheduling,
+  enableFrameEndScheduling,
 } from 'shared/ReactFeatureFlags';
 import ReactSharedInternals from 'shared/ReactSharedInternals';
 import is from 'shared/objectIs';
@@ -740,7 +740,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     }
 
     if (
-      enableFameEndScheduling &&
+      enableFrameEndScheduling &&
       newCallbackPriority === DefaultLane &&
       existingFrameAlignedNode == null &&
       typeof window !== 'undefined' &&
@@ -759,7 +759,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   }
 
   if (
-    enableFameEndScheduling &&
+    enableFrameEndScheduling &&
     cancelAnimationFrame != null &&
     existingFrameAlignedNode != null
   ) {
@@ -810,7 +810,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     }
     newCallbackNode = null;
   } else if (
-    enableFameEndScheduling &&
+    enableFrameEndScheduling &&
     newCallbackPriority === DefaultLane &&
     shouldScheduleAnimationFrame()
   ) {
@@ -849,7 +849,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
   root.callbackPriority = newCallbackPriority;
   root.callbackNode = newCallbackNode;
-  if (enableFameEndScheduling) {
+  if (enableFrameEndScheduling) {
     root.frameAlignedNode = newFrameAlignedNode;
   }
 }
