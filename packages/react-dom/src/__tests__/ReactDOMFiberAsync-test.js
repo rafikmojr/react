@@ -691,7 +691,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFrameEndScheduling
+    // @gate enableFrameEndScheduling || !allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced', () => {
       let setState = null;
       let counterRef = null;
@@ -719,7 +719,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 1');
     });
 
-    // @gate enableFrameEndScheduling
+    // @gate enableFrameEndScheduling || !allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default first', () => {
       let setState = null;
       let counterRef = null;
@@ -750,7 +750,7 @@ describe('ReactDOMFiberAsync', () => {
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
 
-    // @gate enableFrameEndScheduling
+    // @gate enableFrameEndScheduling || !allowConcurrentByDefault
     it('When allowConcurrentByDefault is enabled, unknown updates should not be time sliced event with default after', () => {
       let setState = null;
       let counterRef = null;
