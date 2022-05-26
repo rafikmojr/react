@@ -86,7 +86,6 @@ import {
   errorHydratingContainer,
   scheduleMicrotask,
 } from './ReactFiberHostConfig';
-import * as HostConfig from './ReactFiberHostConfig';
 import {
   createWorkInProgress,
   assignFiberPropertiesInDEV,
@@ -768,7 +767,6 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     cancelAnimationFrame(existingFrameAlignedNode);
   }
 
-  console.log(shouldScheduleAnimationFrame, HostConfig);
   // Schedule a new callback.
   let newCallbackNode;
   let newFrameAlignedNode;
