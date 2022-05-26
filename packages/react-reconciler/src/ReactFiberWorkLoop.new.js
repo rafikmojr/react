@@ -739,8 +739,19 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
         );
       }
     }
-    // The priority hasn't changed. We can reuse the existing task. Exit.
-    return;
+
+    if (
+      enableFameEndScheduling &&
+      newCallbackPriority === DefaultLane &&
+      existingFrameAlignedNode == null &&
+      typeof window !== 'undefined' &&
+      typeof window.event === 'undefined'
+    ) {
+      // Do nothing, we need to cancel the existing default task and schedule a rAF.
+    } else {
+      // The priority hasn't changed. We can reuse the existing task. Exit.
+      return;
+    }
   }
 
   if (existingCallbackNode !== null) {

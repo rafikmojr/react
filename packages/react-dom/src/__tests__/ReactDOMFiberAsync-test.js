@@ -547,7 +547,7 @@ describe('ReactDOMFiberAsync', () => {
     });
 
     // @gate enableFameEndScheduling
-    it.skip('batch default updates with existing unknown updates', () => {
+    it('Unknown update followed by default update is batched, scheduled in a rAF', () => {
       let setState = null;
       let counterRef = null;
       function Counter() {
@@ -570,11 +570,116 @@ describe('ReactDOMFiberAsync', () => {
       window.event = 'test';
       setState(2);
 
-      expect(Scheduler).toFlushAndYield([]);
+      expect(Scheduler).toHaveYielded([]);
       expect(counterRef.current.textContent).toBe('Count: 0');
-      // global.flushRequestAnimationFrameQueue();
+      global.flushRequestAnimationFrameQueue();
       expect(Scheduler).toHaveYielded(['Count: 2']);
       expect(counterRef.current.textContent).toBe('Count: 2');
+
+      expect(Scheduler).toFlushAndYield([]);
+    });
+
+    // @gate enableFameEndScheduling
+    it('Unknown update followed by default update is batched, scheduled in a task', () => {
+      let setState = null;
+      let counterRef = null;
+      function Counter() {
+        const [count, setCount] = React.useState(0);
+        const ref = React.useRef();
+        setState = setCount;
+        counterRef = ref;
+        Scheduler.unstable_yieldValue('Count: ' + count);
+        return <p ref={ref}>Count: {count}</p>;
+      }
+
+      const root = ReactDOMClient.createRoot(container);
+      act(() => {
+        root.render(<Counter />);
+      });
+      expect(Scheduler).toHaveYielded(['Count: 0']);
+
+      window.event = undefined;
+      setState(1);
+      window.event = 'test';
+      setState(2);
+
+      expect(Scheduler).toHaveYielded([]);
+      expect(counterRef.current.textContent).toBe('Count: 0');
+
+      expect(Scheduler).toFlushAndYield(['Count: 2']);
+      expect(counterRef.current.textContent).toBe('Count: 2');
+
+      // rAF should be canceled.
+      global.flushRequestAnimationFrameQueue();
+      expect(Scheduler).toHaveYielded([]);
+    });
+
+    // @gate enableFameEndScheduling
+    it('Default update followed by an unknown update is batched, scheduled in a rAF', () => {
+      let setState = null;
+      let counterRef = null;
+      function Counter() {
+        const [count, setCount] = React.useState(0);
+        const ref = React.useRef();
+        setState = setCount;
+        counterRef = ref;
+        Scheduler.unstable_yieldValue('Count: ' + count);
+        return <p ref={ref}>Count: {count}</p>;
+      }
+
+      const root = ReactDOMClient.createRoot(container);
+      act(() => {
+        root.render(<Counter />);
+      });
+      expect(Scheduler).toHaveYielded(['Count: 0']);
+
+      window.event = 'test';
+      setState(1);
+      window.event = undefined;
+      setState(2);
+
+      expect(Scheduler).toHaveYielded([]);
+      expect(counterRef.current.textContent).toBe('Count: 0');
+      global.flushRequestAnimationFrameQueue();
+      expect(Scheduler).toHaveYielded(['Count: 2']);
+      expect(counterRef.current.textContent).toBe('Count: 2');
+
+      expect(Scheduler).toFlushAndYield([]);
+    });
+
+    // @gate enableFameEndScheduling
+    it('Default update followed by unknown update is batched, scheduled in a task', () => {
+      let setState = null;
+      let counterRef = null;
+      function Counter() {
+        const [count, setCount] = React.useState(0);
+        const ref = React.useRef();
+        setState = setCount;
+        counterRef = ref;
+        Scheduler.unstable_yieldValue('Count: ' + count);
+        return <p ref={ref}>Count: {count}</p>;
+      }
+
+      const root = ReactDOMClient.createRoot(container);
+      act(() => {
+        root.render(<Counter />);
+      });
+      expect(Scheduler).toHaveYielded(['Count: 0']);
+
+      window.event = 'test';
+      setState(1);
+      window.event = undefined;
+      setState(2);
+
+      expect(Scheduler).toHaveYielded([]);
+      expect(counterRef.current.textContent).toBe('Count: 0');
+
+      expect(Scheduler).toFlushAndYield(['Count: 2']);
+      expect(counterRef.current.textContent).toBe('Count: 2');
+
+      // rAF should be canceled.
+      global.flushRequestAnimationFrameQueue();
+      expect(Scheduler).toHaveYielded([]);
     });
 
     // @gate enableFameEndScheduling
