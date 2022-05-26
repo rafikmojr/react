@@ -22,6 +22,7 @@ import {
   enableUpdaterTracking,
   allowConcurrentByDefault,
   enableTransitionTracing,
+  enableFameEndScheduling,
 } from 'shared/ReactFeatureFlags';
 import {isDevToolsPresent} from './ReactFiberDevToolsHook.old';
 import {ConcurrentUpdatesByDefaultMode, NoMode} from './ReactTypeOfMode';
@@ -468,7 +469,12 @@ export function includesBlockingLane(root: FiberRoot, lanes: Lanes) {
     allowConcurrentByDefault &&
     (root.current.mode & ConcurrentUpdatesByDefaultMode) !== NoMode
   ) {
-    // Concurrent updates by default always use time slicing.
+    if (enableFameEndScheduling && root.frameAlignedNode != null) {
+      // Unknown updates should flush synchronously, even in concurrent by default.
+      return true;
+    }
+
+    // Otherwise, concurrent updates by default always use time slicing.
     return false;
   }
   const SyncDefaultLanes =
