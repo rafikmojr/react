@@ -434,7 +434,7 @@ function createReactNoop(reconciler: Function, useMutation: boolean) {
               })
         : setTimeout,
 
-    supportsAnimationFrame: false,
+    shouldScheduleAnimationFrame: () => false,
     scheduleAnimationFrame: undefined,
     cancelAnimationFrame: undefined,
 

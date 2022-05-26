@@ -210,17 +210,17 @@ Set this to true to indicate that your renderer supports `scheduleMicrotask`. We
 
 Optional. You can proxy this to `queueMicrotask` or its equivalent in your environment.
 
-#### `supportsAnimationFrame`
+#### `shouldScheduleAnimationFrame`
 
-TODO
+Function that returns whether the current event should additionally schedule an animation frame to flush default updated. We use this in React DOM when updates are schedule inside of events that need to flush before the next paint such as ResizeObserver.
 
 #### `scheduleAnimationFrame(fn)`
 
-TODO
+Optional. Function to schedule an animation frame. You can proxy this to `requestAnimationFrame` or its equivalent in your environment.
 
 #### `cancelAnimationFrame(fn)`
 
-TODO
+Optional. Function to cancel a scheduled animation frame. You can proxy this to `cancelAnimationFrame` or its equivalent in your environment.
 
 #### `isPrimaryRenderer`
 

@@ -411,10 +411,18 @@ export const scheduleMicrotask: any =
 // -------------------
 //     requestAnimationFrame
 // -------------------
-export const supportsAnimationFrame =
-  typeof localRequestAnimationFrame !== 'undefined';
 export const scheduleAnimationFrame: any = localRequestAnimationFrame;
 export const cancelAnimationFrame: any = localCancelAnimationFrame;
+export const shouldScheduleAnimationFrame =
+  scheduleAnimationFrame != null && cancelAnimationFrame != null
+    ? function() {
+        return (
+          typeof window !== 'undefined' && typeof window.event === 'undefined'
+        );
+      }
+    : function() {
+        return false;
+      };
 
 function handleErrorInNextTick(error) {
   setTimeout(() => {

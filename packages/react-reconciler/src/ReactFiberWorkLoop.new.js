@@ -80,7 +80,7 @@ import {
   afterActiveInstanceBlur,
   getCurrentEventPriority,
   supportsMicrotasks,
-  supportsAnimationFrame,
+  shouldScheduleAnimationFrame,
   scheduleAnimationFrame,
   cancelAnimationFrame,
   errorHydratingContainer,
@@ -764,6 +764,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     cancelAnimationFrame != null &&
     existingFrameAlignedNode != null
   ) {
+    // Cancel the existing rAF. We'll schedule a new one below.
     cancelAnimationFrame(existingFrameAlignedNode);
   }
 
@@ -811,29 +812,17 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     newCallbackNode = null;
   } else if (
     enableFameEndScheduling &&
-    supportsAnimationFrame &&
-    newCallbackPriority === DefaultLane
+    newCallbackPriority === DefaultLane &&
+    shouldScheduleAnimationFrame()
   ) {
-    if (existingCallbackPriority === -1) {
-      // Do nothing, batch Default updates in the existing rAF.
-    } else if (
-      typeof window !== 'undefined' &&
-      typeof window.event === 'undefined'
-    ) {
-      // Schedule both tasks, we'll race them and use the first to fire.
-      newFrameAlignedNode = scheduleAnimationFrame(
-        performConcurrentWorkOnRoot.bind(null, root),
-      );
-      newCallbackNode = scheduleCallback(
-        NormalSchedulerPriority,
-        performConcurrentWorkOnRoot.bind(null, root),
-      );
-    } else {
-      newCallbackNode = scheduleCallback(
-        NormalSchedulerPriority,
-        performConcurrentWorkOnRoot.bind(null, root),
-      );
-    }
+    // Schedule both tasks, we'll race them and use the first to fire.
+    newFrameAlignedNode = scheduleAnimationFrame(
+      performConcurrentWorkOnRoot.bind(null, root),
+    );
+    newCallbackNode = scheduleCallback(
+      NormalSchedulerPriority,
+      performConcurrentWorkOnRoot.bind(null, root),
+    );
   } else {
     let schedulerPriorityLevel;
     switch (lanesToEventPriority(nextLanes)) {
