@@ -80,10 +80,10 @@ export const scheduleMicrotask = $$$hostConfig.scheduleMicrotask;
 //      Animation Frame
 //     (optional)
 // -------------------
-export const shouldScheduleAnimationFrame =
-  $$$hostConfig.shouldScheduleAnimationFrame;
-export const scheduleAnimationFrame = $$$hostConfig.scheduleAnimationFrame;
-export const cancelAnimationFrame = $$$hostConfig.cancelAnimationFrame;
+export const supportsFrameEndTask =
+  $$$hostConfig.supportsFrameEndTask;
+export const scheduleFrameEndTask = $$$hostConfig.scheduleFrameEndTask;
+export const cancelFrameEndTask = $$$hostConfig.cancelFrameEndTask;
 
 // -------------------
 //      Test selectors

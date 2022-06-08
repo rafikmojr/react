@@ -23,6 +23,6 @@ export const supportsMicrotasks = false;
 export const scheduleMicrotask = shim;
 
 // Test selectors (when unsupported)
-export const shouldScheduleAnimationFrame = () => false;
-export const scheduleAnimationFrame = shim;
-export const cancelAnimationFrame = shim;
+export const supportsFrameEndTask = false;
+export const scheduleFrameEndTask = shim;
+export const cancelFrameEndTask = shim;

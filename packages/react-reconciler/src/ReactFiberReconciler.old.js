@@ -99,7 +99,12 @@ import {
   findHostInstancesForRefresh,
 } from './ReactFiberHotReloading.old';
 import ReactVersion from 'shared/ReactVersion';
+<<<<<<< packages/react-reconciler/src/ReactFiberReconciler.old.js
 export {registerMutableSourceForHydration} from './ReactMutableSource.old';
+=======
+import {requestUpdateLane_isUnknownEventPriority} from './ReactFiberWorkLoop.new';
+export {registerMutableSourceForHydration} from './ReactMutableSource.new';
+>>>>>>> packages/react-reconciler/src/ReactFiberReconciler.new.js
 export {createPortal} from './ReactPortal';
 export {
   createComponentSelector,
@@ -309,6 +314,7 @@ export function createHydrationContainer(
   const current = root.current;
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(current);
+  // TODO what to do about isUnknownEventPriority here
   const update = createUpdate(eventTime, lane);
   update.callback =
     callback !== undefined && callback !== null ? callback : null;
@@ -330,7 +336,7 @@ export function updateContainer(
   const current = container.current;
   const eventTime = requestEventTime();
   const lane = requestUpdateLane(current);
-
+  const isUnknownEventPriority = requestUpdateLane_isUnknownEventPriority();
   if (enableSchedulingProfiler) {
     markRenderScheduled(lane);
   }
@@ -380,7 +386,13 @@ export function updateContainer(
 
   const root = enqueueUpdate(current, update, lane);
   if (root !== null) {
-    scheduleUpdateOnFiber(root, current, lane, eventTime);
+    scheduleUpdateOnFiber(
+      root,
+      current,
+      lane,
+      eventTime,
+      isUnknownEventPriority,
+    );
     entangleTransitions(root, current, lane);
   }
 

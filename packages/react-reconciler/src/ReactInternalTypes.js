@@ -224,6 +224,7 @@ type BaseFiberRootProperties = {|
   callbackNode: *,
   callbackPriority: Lane,
   frameAlignedNode?: number | null,
+  hasUnknownUpdates?: boolean,
   eventTimes: LaneMap<number>,
   expirationTimes: LaneMap<number>,
 

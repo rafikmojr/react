@@ -780,6 +780,123 @@ describe('ReactDOMFiberAsync', () => {
       expect(Scheduler).toFlushAndYieldThrough(['Count: 2']);
       expect(counterRef.current.textContent).toBe('Count: 2');
     });
+
+    // @gate enableFrameEndScheduling
+    it('unknown updates should be rescheduled in rAF after a higher priority update', async () => {
+      let setState = null;
+      let counterRef = null;
+      function Counter() {
+        const [count, setCount] = React.useState(0);
+        const ref = React.useRef();
+        setState = setCount;
+        counterRef = ref;
+        Scheduler.unstable_yieldValue('Count: ' + count);
+        return (
+          <p
+            ref={ref}
+            onClick={() => {
+              setCount(c => c + 1);
+            }}>
+            Count: {count}
+          </p>
+        );
+      }
+
+      const root = ReactDOMClient.createRoot(container, {
+        unstable_concurrentUpdatesByDefault: true,
+      });
+      act(() => {
+        root.render(<Counter />);
+      });
+      expect(Scheduler).toHaveYielded(['Count: 0']);
+
+      window.event = undefined;
+      setState(1);
+
+      // Dispatch a click event on the button.
+      const firstEvent = document.createEvent('Event');
+      firstEvent.initEvent('click', true, true);
+      counterRef.current.dispatchEvent(firstEvent);
+
+      await null;
+
+      expect(Scheduler).toHaveYielded(['Count: 1']);
+      expect(counterRef.current.textContent).toBe('Count: 1');
+
+      global.flushRequestAnimationFrameQueue();
+      expect(Scheduler).toHaveYielded(['Count: 2']);
+      expect(counterRef.current.textContent).toBe('Count: 2');
+    });
+
+    // @gate enableFrameEndScheduling
+    it('unknown updates should be rescheduled in rAF after a higher priority update', async () => {
+      let setState = null;
+      let setThrowing = null;
+      let counterRef = null;
+
+      let promise = null;
+      let unsuspend = null;
+
+      function Counter() {
+        const [count, setCount] = React.useState(0);
+        const [isThrowing, setThrowingState] = React.useState(false);
+        setThrowing = setThrowingState;
+        const ref = React.useRef();
+        setState = setCount;
+        counterRef = ref;
+        Scheduler.unstable_yieldValue('Count: ' + count);
+        if (isThrowing) {
+          if (promise === null) {
+            promise = new Promise(resolve => {
+              unsuspend = () => {
+                resolve();
+              };
+            });
+          }
+          Scheduler.unstable_yieldValue('suspending');
+          throw promise;
+        }
+        return (
+          <p
+            ref={ref}
+            onClick={() => {
+              setCount(c => c + 1);
+            }}>
+            Count: {count}
+          </p>
+        );
+      }
+
+      const root = ReactDOMClient.createRoot(container, {
+        unstable_concurrentUpdatesByDefault: true,
+      });
+      act(() => {
+        root.render(<Counter />);
+      });
+      expect(Scheduler).toHaveYielded(['Count: 0']);
+
+      window.event = undefined;
+      setState(1);
+
+      act(() => {
+        setThrowing(true);
+      });
+
+      expect(Scheduler).toHaveYielded(['Count: 1', 'suspending']);
+      expect(counterRef.current.textContent).toBe('Count: 0');
+
+      act(() => {
+        unsuspend();
+        setThrowing(false);
+
+        // Should not be scheduled in a rAF.
+        window.event = 'test';
+        setState(2);
+      });
+
+      expect(Scheduler).toHaveYielded(['Count: 2']);
+      expect(counterRef.current.textContent).toBe('Count: 2');
+    });
   });
 
   it('regression test: does not drop passive effects across roots (#17066)', () => {

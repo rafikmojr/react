@@ -80,11 +80,11 @@ import {
   afterActiveInstanceBlur,
   getCurrentEventPriority,
   supportsMicrotasks,
-  shouldScheduleAnimationFrame,
-  scheduleAnimationFrame,
-  cancelAnimationFrame,
   errorHydratingContainer,
   scheduleMicrotask,
+  cancelFrameEndTask,
+  scheduleFrameEndTask,
+  supportsFrameEndTask,
 } from './ReactFiberHostConfig';
 import {
   createWorkInProgress,
@@ -441,7 +441,14 @@ export function getCurrentTime() {
   return now();
 }
 
+let isUnknownEventPriority = false;
+
+export function requestUpdateLane_isUnknownEventPriority(): boolean {
+  return isUnknownEventPriority;
+}
+
 export function requestUpdateLane(fiber: Fiber): Lane {
+  isUnknownEventPriority = false;
   // Special cases
   const mode = fiber.mode;
   if ((mode & ConcurrentMode) === NoMode) {
@@ -504,7 +511,11 @@ export function requestUpdateLane(fiber: Fiber): Lane {
   // The opaque type returned by the host config is internally a lane, so we can
   // use that directly.
   // TODO: Move this type conversion to the event priority module.
-  const eventLane: Lane = (getCurrentEventPriority(): any);
+  let eventLane: Lane = (getCurrentEventPriority(): any);
+  if (eventLane === NoLane) {
+    isUnknownEventPriority = true;
+    eventLane = DefaultLane;
+  }
   return eventLane;
 }
 
@@ -527,6 +538,7 @@ export function scheduleUpdateOnFiber(
   fiber: Fiber,
   lane: Lane,
   eventTime: number,
+  isUnknownEvent: boolean,
 ) {
   checkForNestedUpdates();
 
@@ -543,7 +555,7 @@ export function scheduleUpdateOnFiber(
   }
 
   // Mark that the root has a pending update.
-  markRootUpdated(root, lane, eventTime);
+  markRootUpdated(root, lane, eventTime, isUnknownEvent);
 
   if (
     (executionContext & RenderContext) !== NoLanes &&
@@ -687,7 +699,6 @@ export function isUnsafeClassRenderPhaseUpdate(fiber: Fiber) {
 // exiting a task.
 function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
   const existingCallbackNode = root.callbackNode;
-  const existingFrameAlignedNode = root.frameAlignedNode;
 
   // Check if any lanes are being starved by other work. If so, mark them as
   // expired so we know to work on those next.
@@ -742,9 +753,7 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     if (
       enableFrameEndScheduling &&
       newCallbackPriority === DefaultLane &&
-      existingFrameAlignedNode == null &&
-      typeof window !== 'undefined' &&
-      typeof window.event === 'undefined'
+      root.hasUnknownUpdates
     ) {
       // Do nothing, we need to cancel the existing default task and schedule a rAF.
     } else {
@@ -755,21 +764,21 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
   if (existingCallbackNode !== null) {
     // Cancel the existing callback. We'll schedule a new one below.
-    cancelCallback(existingCallbackNode);
-  }
-
-  if (
-    enableFrameEndScheduling &&
-    cancelAnimationFrame != null &&
-    existingFrameAlignedNode != null
-  ) {
-    // Cancel the existing rAF. We'll schedule a new one below.
-    cancelAnimationFrame(existingFrameAlignedNode);
+    if (
+      enableFrameEndScheduling &&
+      supportsFrameEndTask &&
+      existingCallbackNode != null &&
+      // TODO: is there a better check for callbackNode type?
+      existingCallbackNode.frameNode != null
+    ) {
+      cancelFrameEndTask(existingCallbackNode);
+    } else {
+      cancelCallback(existingCallbackNode);
+    }
   }
 
   // Schedule a new callback.
   let newCallbackNode;
-  let newFrameAlignedNode;
   if (newCallbackPriority === SyncLane) {
     // Special case: Sync React callbacks are scheduled on a special
     // internal queue
@@ -811,15 +820,11 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
     newCallbackNode = null;
   } else if (
     enableFrameEndScheduling &&
+    supportsFrameEndTask &&
     newCallbackPriority === DefaultLane &&
-    shouldScheduleAnimationFrame()
+    root.hasUnknownUpdates
   ) {
-    // Schedule both tasks, we'll race them and use the first to fire.
-    newFrameAlignedNode = scheduleAnimationFrame(
-      performConcurrentWorkOnRoot.bind(null, root),
-    );
-    newCallbackNode = scheduleCallback(
-      NormalSchedulerPriority,
+    newCallbackNode = scheduleFrameEndTask(
       performConcurrentWorkOnRoot.bind(null, root),
     );
   } else {
@@ -849,9 +854,6 @@ function ensureRootIsScheduled(root: FiberRoot, currentTime: number) {
 
   root.callbackPriority = newCallbackPriority;
   root.callbackNode = newCallbackNode;
-  if (enableFrameEndScheduling) {
-    root.frameAlignedNode = newFrameAlignedNode;
-  }
 }
 
 // This is the entry point for every concurrent task, i.e. anything that
@@ -2303,6 +2305,9 @@ function commitRootImpl(
   // Always call this before exiting `commitRoot`, to ensure that any
   // additional work on this root is scheduled.
   ensureRootIsScheduled(root, now());
+  // Clear the unknown updates after we've scheduled.
+  // Ideally this would be in markRootCompleted, but that is called too soon.
+  root.hasUnknownUpdates = false;
 
   if (recoverableErrors !== null) {
     // There were errors during this render, but recovered from them without

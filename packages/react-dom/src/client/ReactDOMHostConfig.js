@@ -68,10 +68,11 @@ import {
 import {HostComponent, HostText} from 'react-reconciler/src/ReactWorkTags';
 import {listenToAllSupportedEvents} from '../events/DOMPluginEventSystem';
 
-import {DefaultEventPriority} from 'react-reconciler/src/ReactEventPriorities';
+import {UnknownEventPriority} from 'react-reconciler/src/ReactEventPriorities';
 
 // TODO: Remove this deep import when we delete the legacy root API
 import {ConcurrentMode, NoMode} from 'react-reconciler/src/ReactTypeOfMode';
+import * as Scheduler from 'scheduler';
 
 export type Type = string;
 export type Props = {
@@ -368,7 +369,7 @@ export function createTextInstance(
 export function getCurrentEventPriority(): * {
   const currentEvent = window.event;
   if (currentEvent === undefined) {
-    return DefaultEventPriority;
+    return UnknownEventPriority;
   }
   return getEventPriority(currentEvent.type);
 }
@@ -411,18 +412,26 @@ export const scheduleMicrotask: any =
 // -------------------
 //     requestAnimationFrame
 // -------------------
-export const scheduleAnimationFrame: any = localRequestAnimationFrame;
-export const cancelAnimationFrame: any = localCancelAnimationFrame;
-export const shouldScheduleAnimationFrame =
-  scheduleAnimationFrame != null && cancelAnimationFrame != null
-    ? function() {
-        return (
-          typeof window !== 'undefined' && typeof window.event === 'undefined'
-        );
-      }
-    : function() {
-        return false;
-      };
+export const supportsFrameEndTask = true;
+export function scheduleFrameEndTask(task) {
+  // Schedule both tasks, we'll race them and use the first to fire.
+  return {
+    frameNode: localRequestAnimationFrame(task),
+    callbackNode: Scheduler.unstable_scheduleCallback(
+      Scheduler.unstable_NormalPriority,
+      task,
+    ),
+  };
+}
+export function cancelFrameEndTask(task) {
+  if (task.frameNode != null) {
+    localCancelAnimationFrame(task.frameNode);
+  }
+
+  if (task.callbackNode != null) {
+    Scheduler.unstable_cancelCallback(task.callbackNode);
+  }
+}
 
 function handleErrorInNextTick(error) {
   setTimeout(() => {

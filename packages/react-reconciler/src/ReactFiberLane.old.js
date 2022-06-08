@@ -469,7 +469,11 @@ export function includesBlockingLane(root: FiberRoot, lanes: Lanes) {
     allowConcurrentByDefault &&
     (root.current.mode & ConcurrentUpdatesByDefaultMode) !== NoMode
   ) {
-    if (enableFrameEndScheduling && root.frameAlignedNode != null) {
+    if (
+      enableFrameEndScheduling &&
+      (lanes & DefaultLane) !== NoLanes &&
+      root.hasUnknownUpdates != null
+    ) {
       // Unknown updates should flush synchronously, even in concurrent by default.
       return true;
     }
@@ -581,9 +585,13 @@ export function markRootUpdated(
   root: FiberRoot,
   updateLane: Lane,
   eventTime: number,
+  isUnknownEvent: boolean,
 ) {
   root.pendingLanes |= updateLane;
 
+  if (isUnknownEvent) {
+    root.hasUnknownUpdates = true;
+  }
   // If there are any suspended transitions, it's possible this new update
   // could unblock them. Clear the suspended lanes so that we can try rendering
   // them again.
@@ -611,6 +619,7 @@ export function markRootUpdated(
 export function markRootSuspended(root: FiberRoot, suspendedLanes: Lanes) {
   root.suspendedLanes |= suspendedLanes;
   root.pingedLanes &= ~suspendedLanes;
+  root.hasUnknownUpdates = false;
 
   // The suspended lanes are no longer CPU-bound. Clear their expiration times.
   const expirationTimes = root.expirationTimes;
