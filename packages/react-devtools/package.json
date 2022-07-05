@@ -28,5 +28,6 @@
     "minimist": "^1.2.3",
     "react-devtools-core": "4.24.7",
     "update-notifier": "^2.1.0"
+    
   }
 }
