@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -7,17 +7,21 @@
  * @flow
  */
 
+export {default as __DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE} from './src/ReactDOMSharedInternals';
 export {
-  __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
   createPortal,
   createRoot,
   hydrateRoot,
-  findDOMNode,
   flushSync,
-  hydrate,
-  render,
-  unmountComponentAtNode,
   unstable_batchedUpdates,
-  unstable_renderSubtreeIntoContainer,
+  useFormStatus,
+  useFormState,
+  requestFormReset,
+  prefetchDNS,
+  preconnect,
+  preload,
+  preloadModule,
+  preinit,
+  preinitModule,
   version,
 } from './src/client/ReactDOM';

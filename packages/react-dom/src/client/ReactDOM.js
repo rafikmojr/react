@@ -1,5 +1,5 @@
 /**
- * Copyright (c) Facebook, Inc. and its affiliates.
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
@@ -8,102 +8,67 @@
  */
 
 import type {ReactNodeList} from 'shared/ReactTypes';
-import type {Container} from './ReactDOMHostConfig';
 import type {
   RootType,
   HydrateRootOptions,
   CreateRootOptions,
 } from './ReactDOMRoot';
 
-import {
-  findDOMNode,
-  render,
-  hydrate,
-  unstable_renderSubtreeIntoContainer,
-  unmountComponentAtNode,
-} from './ReactDOMLegacy';
+import {disableLegacyMode} from 'shared/ReactFeatureFlags';
 import {
   createRoot as createRootImpl,
   hydrateRoot as hydrateRootImpl,
   isValidContainer,
 } from './ReactDOMRoot';
-import {createEventHandle} from './ReactDOMEventHandle';
+import {createEventHandle} from 'react-dom-bindings/src/client/ReactDOMEventHandle';
+import {runWithPriority} from 'react-dom-bindings/src/client/ReactDOMUpdatePriority';
+import {flushSync as flushSyncIsomorphic} from '../shared/ReactDOMFlushSync';
 
 import {
-  batchedUpdates,
-  discreteUpdates,
-  flushSync as flushSyncWithoutWarningIfAlreadyRendering,
+  flushSyncFromReconciler as flushSyncWithoutWarningIfAlreadyRendering,
   isAlreadyRendering,
-  flushControlled,
   injectIntoDevTools,
-  attemptSynchronousHydration,
-  attemptDiscreteHydration,
-  attemptContinuousHydration,
-  attemptHydrationAtCurrentPriority,
+  findHostInstance,
 } from 'react-reconciler/src/ReactFiberReconciler';
-import {
-  runWithPriority,
-  getCurrentUpdatePriority,
-} from 'react-reconciler/src/ReactEventPriorities';
 import {createPortal as createPortalImpl} from 'react-reconciler/src/ReactPortal';
 import {canUseDOM} from 'shared/ExecutionEnvironment';
 import ReactVersion from 'shared/ReactVersion';
-import {enableNewReconciler} from 'shared/ReactFeatureFlags';
 
-import {
-  getInstanceFromNode,
-  getNodeFromInstance,
-  getFiberCurrentPropsFromNode,
-  getClosestInstanceFromNode,
-} from './ReactDOMComponentTree';
-import {restoreControlledState} from './ReactDOMComponent';
-import {
-  setAttemptSynchronousHydration,
-  setAttemptDiscreteHydration,
-  setAttemptContinuousHydration,
-  setAttemptHydrationAtCurrentPriority,
-  setGetCurrentUpdatePriority,
-  setAttemptHydrationAtPriority,
-} from '../events/ReactDOMEventReplaying';
-import {setBatchingImplementation} from '../events/ReactDOMUpdateBatching';
-import {
-  setRestoreImplementation,
-  enqueueStateRestore,
-  restoreStateIfNeeded,
-} from '../events/ReactDOMControlledComponent';
+import {getClosestInstanceFromNode} from 'react-dom-bindings/src/client/ReactDOMComponentTree';
+import Internals from '../ReactDOMSharedInternals';
 
-setAttemptSynchronousHydration(attemptSynchronousHydration);
-setAttemptDiscreteHydration(attemptDiscreteHydration);
-setAttemptContinuousHydration(attemptContinuousHydration);
-setAttemptHydrationAtCurrentPriority(attemptHydrationAtCurrentPriority);
-setGetCurrentUpdatePriority(getCurrentUpdatePriority);
-setAttemptHydrationAtPriority(runWithPriority);
+export {
+  prefetchDNS,
+  preconnect,
+  preload,
+  preloadModule,
+  preinit,
+  preinitModule,
+} from '../shared/ReactDOMFloat';
+export {
+  useFormStatus,
+  useFormState,
+  requestFormReset,
+} from 'react-dom-bindings/src/shared/ReactDOMFormActions';
 
 if (__DEV__) {
   if (
     typeof Map !== 'function' ||
-    // $FlowIssue Flow incorrectly thinks Map has no prototype
+    // $FlowFixMe[prop-missing] Flow incorrectly thinks Map has no prototype
     Map.prototype == null ||
     typeof Map.prototype.forEach !== 'function' ||
     typeof Set !== 'function' ||
-    // $FlowIssue Flow incorrectly thinks Set has no prototype
+    // $FlowFixMe[prop-missing] Flow incorrectly thinks Set has no prototype
     Set.prototype == null ||
     typeof Set.prototype.clear !== 'function' ||
     typeof Set.prototype.forEach !== 'function'
   ) {
     console.error(
       'React depends on Map and Set built-in types. Make sure that you load a ' +
-        'polyfill in older browsers. https://reactjs.org/link/react-polyfills',
+        'polyfill in older browsers. https://react.dev/link/react-polyfills',
     );
   }
 }
-
-setRestoreImplementation(restoreControlledState);
-setBatchingImplementation(
-  batchedUpdates,
-  discreteUpdates,
-  flushSyncWithoutWarningIfAlreadyRendering,
-);
 
 function createPortal(
   children: ReactNodeList,
@@ -115,44 +80,16 @@ function createPortal(
   }
 
   // TODO: pass ReactDOM portal implementation as third argument
-  // $FlowFixMe The Flow type is opaque but there's no way to actually create it.
+  // $FlowFixMe[incompatible-return] The Flow type is opaque but there's no way to actually create it.
   return createPortalImpl(children, container, null, key);
 }
-
-function renderSubtreeIntoContainer(
-  parentComponent: React$Component<any, any>,
-  element: React$Element<any>,
-  containerNode: Container,
-  callback: ?Function,
-) {
-  return unstable_renderSubtreeIntoContainer(
-    parentComponent,
-    element,
-    containerNode,
-    callback,
-  );
-}
-
-const Internals = {
-  usingClientEntryPoint: false,
-  // Keep in sync with ReactTestUtils.js.
-  // This is an array for better minification.
-  Events: [
-    getInstanceFromNode,
-    getNodeFromInstance,
-    getFiberCurrentPropsFromNode,
-    enqueueStateRestore,
-    restoreStateIfNeeded,
-    batchedUpdates,
-  ],
-};
 
 function createRoot(
   container: Element | Document | DocumentFragment,
   options?: CreateRootOptions,
 ): RootType {
   if (__DEV__) {
-    if (!Internals.usingClientEntryPoint && !__UMD__) {
+    if (!(Internals: any).usingClientEntryPoint && !__UMD__) {
       console.error(
         'You are importing createRoot from "react-dom" which is not supported. ' +
           'You should instead import it from "react-dom/client".',
@@ -168,7 +105,7 @@ function hydrateRoot(
   options?: HydrateRootOptions,
 ): RootType {
   if (__DEV__) {
-    if (!Internals.usingClientEntryPoint && !__UMD__) {
+    if (!(Internals: any).usingClientEntryPoint && !__UMD__) {
       console.error(
         'You are importing hydrateRoot from "react-dom" which is not supported. ' +
           'You should instead import it from "react-dom/client".',
@@ -180,11 +117,11 @@ function hydrateRoot(
 
 // Overload the definition to the two valid signatures.
 // Warning, this opts-out of checking the function body.
-declare function flushSync<R>(fn: () => R): R;
+declare function flushSyncFromReconciler<R>(fn: () => R): R;
 // eslint-disable-next-line no-redeclare
-declare function flushSync(): void;
+declare function flushSyncFromReconciler(): void;
 // eslint-disable-next-line no-redeclare
-function flushSync(fn) {
+function flushSyncFromReconciler<R>(fn: (() => R) | void): R | void {
   if (__DEV__) {
     if (isAlreadyRendering()) {
       console.error(
@@ -197,23 +134,34 @@ function flushSync(fn) {
   return flushSyncWithoutWarningIfAlreadyRendering(fn);
 }
 
+const flushSync: typeof flushSyncIsomorphic = disableLegacyMode
+  ? flushSyncIsomorphic
+  : flushSyncFromReconciler;
+
+function findDOMNode(
+  componentOrElement: React$Component<any, any>,
+): null | Element | Text {
+  return findHostInstance(componentOrElement);
+}
+
+// Expose findDOMNode on internals
+Internals.findDOMNode = findDOMNode;
+
+function unstable_batchedUpdates<A, R>(fn: (a: A) => R, a: A): R {
+  // batchedUpdates was a legacy mode feature that is a no-op outside of
+  // legacy mode. In 19, we made it an actual no-op, but we're keeping it
+  // for now since there may be libraries that still include it.
+  return fn(a);
+}
+
 export {
   createPortal,
-  batchedUpdates as unstable_batchedUpdates,
+  unstable_batchedUpdates,
   flushSync,
-  Internals as __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
   ReactVersion as version,
-  // Disabled behind disableLegacyReactDOMAPIs
-  findDOMNode,
-  hydrate,
-  render,
-  unmountComponentAtNode,
   // exposeConcurrentModeAPIs
   createRoot,
   hydrateRoot,
-  flushControlled as unstable_flushControlled,
-  // Disabled behind disableUnstableRenderSubtreeIntoContainer
-  renderSubtreeIntoContainer as unstable_renderSubtreeIntoContainer,
   // enableCreateEventHandleAPI
   createEventHandle as unstable_createEventHandle,
   // TODO: Remove this once callers migrate to alternatives.
@@ -243,10 +191,10 @@ if (__DEV__) {
         console.info(
           '%cDownload the React DevTools ' +
             'for a better development experience: ' +
-            'https://reactjs.org/link/react-devtools' +
+            'https://react.dev/link/react-devtools' +
             (protocol === 'file:'
               ? '\nYou might need to use a local HTTP server (instead of file://): ' +
-                'https://reactjs.org/link/react-devtools-faq'
+                'https://react.dev/link/react-devtools-faq'
               : ''),
           'font-weight:bold',
         );
@@ -254,5 +202,3 @@ if (__DEV__) {
     }
   }
 }
-
-export const unstable_isNewReconciler = enableNewReconciler;
